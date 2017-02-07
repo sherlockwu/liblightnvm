@@ -114,12 +114,61 @@
 	(val & (1ULL << 1) ? '1' : '0'), \
 	(val & (1ULL << 0) ? '1' : '0')
 
+#define NVM_I32_FMT	"%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c"\
+			"%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c"
+
+#define NVM_I32_TO_STR(val) \
+	(val & (1ULL << 31) ? '1' : '0'), \
+	(val & (1ULL << 30) ? '1' : '0'), \
+	(val & (1ULL << 29) ? '1' : '0'), \
+	(val & (1ULL << 28) ? '1' : '0'), \
+	(val & (1ULL << 27) ? '1' : '0'), \
+	(val & (1ULL << 26) ? '1' : '0'), \
+	(val & (1ULL << 25) ? '1' : '0'), \
+	(val & (1ULL << 24) ? '1' : '0'), \
+	(val & (1ULL << 23) ? '1' : '0'), \
+	(val & (1ULL << 22) ? '1' : '0'), \
+	(val & (1ULL << 21) ? '1' : '0'), \
+	(val & (1ULL << 20) ? '1' : '0'), \
+	(val & (1ULL << 19) ? '1' : '0'), \
+	(val & (1ULL << 18) ? '1' : '0'), \
+	(val & (1ULL << 17) ? '1' : '0'), \
+	(val & (1ULL << 16) ? '1' : '0'), \
+	(val & (1ULL << 15) ? '1' : '0'), \
+	(val & (1ULL << 14) ? '1' : '0'), \
+	(val & (1ULL << 13) ? '1' : '0'), \
+	(val & (1ULL << 12) ? '1' : '0'), \
+	(val & (1ULL << 11) ? '1' : '0'), \
+	(val & (1ULL << 10) ? '1' : '0'), \
+	(val & (1ULL << 9) ? '1' : '0'), \
+	(val & (1ULL << 8) ? '1' : '0'), \
+	(val & (1ULL << 7) ? '1' : '0'), \
+	(val & (1ULL << 6) ? '1' : '0'), \
+	(val & (1ULL << 5) ? '1' : '0'), \
+	(val & (1ULL << 4) ? '1' : '0'), \
+	(val & (1ULL << 3) ? '1' : '0'), \
+	(val & (1ULL << 2) ? '1' : '0'), \
+	(val & (1ULL << 1) ? '1' : '0'), \
+	(val & (1ULL << 0) ? '1' : '0')
+
+#define NVM_I8_FMT	"%c%c%c%c%c%c%c%c"
+
+#define NVM_I8_TO_STR(val) \
+	(val & (1ULL << 7) ? '1' : '0'), \
+	(val & (1ULL << 6) ? '1' : '0'), \
+	(val & (1ULL << 5) ? '1' : '0'), \
+	(val & (1ULL << 4) ? '1' : '0'), \
+	(val & (1ULL << 3) ? '1' : '0'), \
+	(val & (1ULL << 2) ? '1' : '0'), \
+	(val & (1ULL << 1) ? '1' : '0'), \
+	(val & (1ULL << 0) ? '1' : '0')
+
 #define NVM_UNIVERSAL_SECT_SH 9
 
 /**
- * NVMe command opcodes as defined by LigthNVM specification 1.2
+ * LightNVM opcodes and data structures as defined by specs 1.2 and 2.0
  */
-enum spec12_opcodes {
+enum spec_12_opcodes {
 	S12_OPC_IDF = 0xE2,
 	S12_OPC_SET_BBT = 0xF1,
 	S12_OPC_GET_BBT = 0xF2,
@@ -127,6 +176,84 @@ enum spec12_opcodes {
 	S12_OPC_WRITE = 0x91,
 	S12_OPC_READ = 0x92,
 };
+
+enum spec_verid {
+	SPEC_VERID_12 = 0x1,
+	SPEC_VERID_20 = 0x2,
+};
+
+struct spec_lbaf {
+	uint8_t ch_len;
+	uint8_t lun_len;
+	uint8_t cnk_len;
+	uint8_t sec_len;
+	uint8_t rsvd[4];
+};
+
+struct spec_ppaf_nand {
+	uint8_t ch_off;
+	uint8_t ch_len;
+	uint8_t lun_off;
+	uint8_t lun_len;
+	uint8_t pl_off;
+	uint8_t pl_len;
+	uint8_t blk_off;
+	uint8_t blk_len;
+	uint8_t pg_off;
+	uint8_t pg_len;
+	uint8_t sec_off;
+	uint8_t sec_len;
+	uint8_t rsvd[4];
+};
+
+struct spec_cgrp {
+	uint8_t mtype;
+	uint8_t fmtype;
+	uint8_t rsvd_2_3[2];
+	uint8_t num_ch;
+	uint8_t num_lun;
+	uint8_t num_pln;
+	uint8_t rsdv_7;
+	uint16_t num_blk;
+	uint16_t num_pg;
+	uint16_t fpg_sz;
+	uint16_t csecs;
+	uint16_t sos;
+	uint8_t rsvd_18_19[2];
+	uint32_t trdt;
+	uint32_t trdm;
+	uint32_t tprt;
+	uint32_t tprm;
+	uint32_t tbet;
+	uint32_t tbem;
+	uint32_t mpos;
+	uint32_t mccap;
+	uint16_t cpar;
+	uint8_t rsvd_54_63[10];
+	uint8_t mts[896];
+};
+
+struct spec_12_idf {
+	uint8_t verid;
+	uint8_t vnvmt;
+	uint8_t cgroups;
+	uint8_t rsvd3;
+	uint32_t cap;
+	uint32_t dom;
+	struct spec_ppaf_nand ppaf;
+	uint8_t rsdv28_255[228];
+	struct spec_cgrp grp[4];
+};
+
+struct spec_20_idf {
+};
+
+struct spec_idf {
+	uint8_t verid;
+	uint8_t rsvd[4095];
+};
+
+void spec_idf_pr(struct spec_idf *idf);
 
 /**
  * Representation of widths in LBA <-> Physical sector mapping

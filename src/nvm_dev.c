@@ -41,60 +41,22 @@
 #include <nvm.h>
 #include <nvm_debug.h>
 
-struct spec_idf {
-	uint8_t verid;
-	uint8_t rsdv[4095];
-};
-
-struct spec12_idf_grp {
-	uint8_t mtype;
-
-};
-
-struct spec12_idf_ppaf {
-	uint8_t ch_off;
-	uint8_t ch_len;
-	uint8_t lun_off;
-	uint8_t lun_len;
-	uint8_t pl_off;
-	uint8_t pl_len;
-	uint8_t blk_off;
-	uint8_t blk_len;
-	uint8_t pg_off;
-	uint8_t pg_len;
-	uint8_t sec_off;
-	uint8_t sec_len;
-	uint8_t rsvd[4];
-};
-
-struct spec12_idf {
-	uint8_t verid;
-	uint8_t vnvmt;
-	uint8_t cgroups;
-	uint8_t rsvd3;
-	uint32_t cap;
-	uint32_t dom;
-	struct spec12_idf_ppaf ppaf;;
-	uint8_t rsdv28_255[228];
-	struct spec12_idf_grp grp[4];
-};
-
 static inline int cmd_ioctl_idf(struct nvm_dev *dev, struct nvm_ret *ret)
 {
 	struct nvm_passthru_vio ctl;
-	struct krnl_idf *krnl_idf;
+	struct spec_idf *idf;
 	int err;
 
-	krnl_idf = nvm_buf_alloc(nvm_dev_get_geo(dev), sizeof(*krnl_idf));
-	if (!krnl_idf) {
+	idf = nvm_buf_alloc(nvm_dev_get_geo(dev), sizeof(*idf));
+	if (!idf) {
 		errno = ENOMEM;
 		return -1;
 	}
 
 	memset(&ctl, 0, sizeof(ctl));
 	ctl.opcode = S12_OPC_IDF;
-	ctl.addr = (uint64_t)krnl_idf;
-	ctl.data_len = sizeof(*krnl_idf);
+	ctl.addr = (uint64_t)idf;
+	ctl.data_len = sizeof(*idf);
 
 	err = ioctl(dev->fd, NVME_NVM_IOCTL_ADMIN_VIO, &ctl);
 	if (ret) {
@@ -103,32 +65,33 @@ static inline int cmd_ioctl_idf(struct nvm_dev *dev, struct nvm_ret *ret)
 	}
 	if (err) {
 		errno = EIO;
-		free(krnl_idf);
+		free(idf);
 		return -1;
 	}
 
-	printf("size: %lu %lu ppaf-size(%lu)\n",
-		sizeof(struct krnl_idf),
-		sizeof(struct krnl_idf_s12),
-		sizeof(struct krnl_idf_ppaf)
+	/*
+	printf("idf(%lu), ppaf(%lu), lbaf(%lu), group(%lu)\n",
+		sizeof(struct spec_12_idf),
+		sizeof(struct spec_ppaf_nand),
+		sizeof(struct spec_lbaf),
+		sizeof(struct spec_cgrp)
 	);
+	*/
 
-	switch (krnl_idf->verid) {
+	switch (idf->verid) {
 	case 0x1:
-		printf("Version 1.2\n");
-		break;
 	case 0x2:
-		printf("Version 1.3\n");
+		spec_idf_pr(idf);
 		break;
 	default:
-		printf("Unsupported Version ID(%d)", krnl_idf->verid);
+		printf("Unsupported Version ID(%d)", idf->verid);
 		errno = ENOSYS;
 		return -1;
 	}
 
 	// TODO: Fill something out
 
-	free(krnl_idf);
+	free(idf);
 
 	return 0;
 }
